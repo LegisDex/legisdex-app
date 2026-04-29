@@ -76,6 +76,7 @@ const icon = {
 
 const initTopbar = () => {
   document.body.className = 'topbar-surface';
+  document.body.dataset.theme = 'dark';
   document.body.innerHTML = `
     <main class="topbar-shell" aria-label="LegisDex desktop toolbar">
       <div class="topbar-left">
@@ -110,6 +111,8 @@ const initTopbar = () => {
   });
 
   window.legisdexTopbar?.onState((state) => {
+    document.body.dataset.theme = state.theme;
+
     if (backButton) {
       backButton.disabled = !state.canGoBack;
     }
