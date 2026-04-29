@@ -6,17 +6,22 @@ import { MakerRpm } from '@electron-forge/maker-rpm';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
+import path from 'node:path';
+
+const iconBasePath = path.resolve(process.cwd(), 'public', 'favicon');
+const iconFilePath = path.resolve(process.cwd(), 'public', 'favicon.ico');
 
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    icon: './public/favicon',
+    extraResource: [iconFilePath],
+    icon: iconBasePath,
     executableName: 'LegisDex',
   },
   rebuildConfig: {},
   makers: [
     new MakerSquirrel({
-      setupIcon: './public/favicon.ico',
+      setupIcon: iconFilePath,
     }),
     new MakerZIP({}, ['darwin']),
     new MakerRpm({}),

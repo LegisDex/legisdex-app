@@ -57,7 +57,9 @@ const getLegisDexUrl = (pathName = DESKTOP_START_PATH) =>
   new URL(pathName, getLegisDexBaseUrl()).toString();
 
 const getPublicAssetPath = (fileName: string) =>
-  path.join(app.getAppPath(), PUBLIC_ASSET_DIR, fileName);
+  app.isPackaged
+    ? path.join(process.resourcesPath, fileName)
+    : path.join(process.cwd(), PUBLIC_ASSET_DIR, fileName);
 
 const isHttpUrl = (url: string) => {
   try {

@@ -78,7 +78,7 @@ const initTopbar = () => {
     <main class="topbar-shell" aria-label="LegisDex desktop toolbar">
       <div class="topbar-left">
         <span class="topbar-mark" aria-hidden="true">
-          <img src="/logo-small.png" alt="" />
+          <img src="./logo-small.png" alt="" />
         </span>
         <span class="topbar-brand">LegisDex</span>
         <span class="topbar-divider" aria-hidden="true"></span>
