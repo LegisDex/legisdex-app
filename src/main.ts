@@ -1,4 +1,12 @@
-import { app, BrowserWindow, ipcMain, Menu, session, shell } from 'electron';
+import {
+  app,
+  BrowserView,
+  BrowserWindow,
+  ipcMain,
+  Menu,
+  session,
+  shell,
+} from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 
@@ -9,6 +17,8 @@ if (started) {
 const FALLBACK_WEB_URL = 'https://www.legisdex.com';
 const LOCAL_WEB_URL = 'http://localhost:3000';
 const DESKTOP_START_PATH = '/chat';
+const TITLEBAR_HEIGHT = 40;
+const WINDOW_CONTROLS_WIDTH = 138;
 const DESKTOP_PATH_ALIASES = [
   ['/account', '/chat/account'],
   ['/checkout', '/chat/checkout'],
@@ -16,7 +26,10 @@ const DESKTOP_PATH_ALIASES = [
 ] as const;
 const DESKTOP_PATH_PREFIXES = [
   '/chat',
+  '/account',
+  '/checkout',
   '/compliance',
+  '/return',
   '/tracker',
   '/sign-in',
   '/sign-up',
@@ -63,6 +76,30 @@ const isAppOrigin = (url: URL, appUrl: URL) =>
   url.origin === appUrl.origin ||
   (!app.isPackaged && url.origin === new URL(LOCAL_WEB_URL).origin);
 
+const isLegisDexHost = (hostname: string) => {
+  const normalizedHost = hostname.toLowerCase();
+
+  return (
+    normalizedHost === 'legisdex.com' ||
+    normalizedHost === 'www.legisdex.com' ||
+    normalizedHost.endsWith('.legisdex.com') ||
+    normalizedHost === 'localhost' ||
+    normalizedHost === '127.0.0.1' ||
+    normalizedHost === '::1' ||
+    normalizedHost === '[::1]'
+  );
+};
+
+const isLegisDexUrl = (url: string) => {
+  try {
+    const parsedUrl = new URL(url);
+
+    return isLegisDexHost(parsedUrl.hostname);
+  } catch {
+    return false;
+  }
+};
+
 const normalizeDesktopPath = (pathName: string) => {
   for (const [source, destination] of DESKTOP_PATH_ALIASES) {
     if (pathName === source) {
@@ -75,6 +112,73 @@ const normalizeDesktopPath = (pathName: string) => {
   }
 
   return pathName;
+};
+
+const titleCaseSegment = (segment: string) =>
+  segment
+    .replace(/-/g, ' ')
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+
+const getTopbarLocation = (url: string, pageTitle = 'Workspace') => {
+  try {
+    const parsedUrl = new URL(url);
+    const pathName = normalizeDesktopPath(parsedUrl.pathname);
+    const segments = pathName.split('/').filter(Boolean);
+
+    if (pathName.startsWith('/chat/account')) {
+      return {
+        section: 'Account',
+        detail: titleCaseSegment(segments[2] ?? 'Profile'),
+      };
+    }
+
+    if (pathName.startsWith('/chat/checkout')) {
+      return { section: 'Billing', detail: 'Checkout' };
+    }
+
+    if (pathName.startsWith('/chat/return')) {
+      return { section: 'Billing', detail: 'Return' };
+    }
+
+    if (pathName.startsWith('/tracker')) {
+      const lastSegment = segments.length > 0 ? segments[segments.length - 1] : '';
+      return {
+        section: 'Tracker',
+        detail: segments[1] ? titleCaseSegment(lastSegment || 'Project') : 'Projects',
+      };
+    }
+
+    if (pathName.startsWith('/compliance')) {
+      return {
+        section: 'Compliance',
+        detail: segments[1] ? titleCaseSegment(segments[1]) : 'Workspace',
+      };
+    }
+
+    if (pathName.startsWith('/chat')) {
+      return {
+        section: 'Chat',
+        detail: segments[1] ? 'Conversation' : 'New Chat',
+      };
+    }
+
+    if (pathName.startsWith('/sign-in')) return { section: 'Auth', detail: 'Sign In' };
+    if (pathName.startsWith('/sign-up')) return { section: 'Auth', detail: 'Sign Up' };
+    if (pathName.startsWith('/forgot-password')) {
+      return { section: 'Auth', detail: 'Forgot Password' };
+    }
+    if (pathName.startsWith('/reset-password')) {
+      return { section: 'Auth', detail: 'Reset Password' };
+    }
+    if (pathName.startsWith('/verify-email')) {
+      return { section: 'Auth', detail: 'Verify Email' };
+    }
+
+    const title = pageTitle.replace(/\s*[|-]\s*LegisDex\s*$/i, '').trim();
+    return { section: title || 'Workspace', detail: '' };
+  } catch {
+    return { section: 'Workspace', detail: '' };
+  }
 };
 
 const getDesktopNavigationUrl = (url: string, appUrl: string) => {
@@ -98,7 +202,22 @@ const getDesktopNavigationUrl = (url: string, appUrl: string) => {
   }
 };
 
+const isSameAppNavigation = (url: string, appUrl: string) => {
+  try {
+    const nextUrl = new URL(url);
+    const homeUrl = new URL(appUrl);
+
+    return isAppOrigin(nextUrl, homeUrl) || isLegisDexHost(nextUrl.hostname);
+  } catch {
+    return false;
+  }
+};
+
 const openOutsideDesktop = async (url: string) => {
+  if (isLegisDexUrl(url)) {
+    return;
+  }
+
   if (isHttpUrl(url) || url.startsWith('mailto:')) {
     await shell.openExternal(url);
   }
@@ -158,6 +277,25 @@ const configureAppSecurity = () => {
 };
 
 let mainWindow: BrowserWindow | null = null;
+let topbarView: BrowserView | null = null;
+let isMainContentLoading = false;
+
+const getRendererIndexPath = () =>
+  path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`);
+
+const getRendererDevUrl = (searchParams?: Record<string, string>) => {
+  if (!MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    return null;
+  }
+
+  const url = new URL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+
+  for (const [key, value] of Object.entries(searchParams ?? {})) {
+    url.searchParams.set(key, value);
+  }
+
+  return url.toString();
+};
 
 const loadLegisDex = async (window: BrowserWindow) => {
   await window.loadURL(getLegisDexUrl());
@@ -169,12 +307,92 @@ const loadFallback = async (window: BrowserWindow) => {
     return;
   }
 
-  const fallbackFilePath = path.join(
-    __dirname,
-    `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`,
+  await window.loadFile(getRendererIndexPath());
+};
+
+const loadTopbar = async (view: BrowserView) => {
+  const devUrl = getRendererDevUrl({ surface: 'topbar' });
+
+  if (devUrl) {
+    await view.webContents.loadURL(devUrl);
+    return;
+  }
+
+  await view.webContents.loadFile(getRendererIndexPath(), {
+    query: { surface: 'topbar' },
+  });
+};
+
+const updateTopbarBounds = () => {
+  if (!mainWindow || !topbarView) {
+    return;
+  }
+
+  const [width] = mainWindow.getContentSize();
+
+  topbarView.setBounds({
+    x: 0,
+    y: 0,
+    width: Math.max(320, width - WINDOW_CONTROLS_WIDTH),
+    height: TITLEBAR_HEIGHT,
+  });
+};
+
+const getMainContentActions = async () => {
+  if (!mainWindow || mainWindow.webContents.isDestroyed()) {
+    return { hasSidebar: false, hasTheme: false };
+  }
+
+  try {
+    return await mainWindow.webContents.executeJavaScript(
+      `(() => ({
+        hasSidebar: Boolean(document.querySelector('[data-legisdex-sidebar-trigger]')),
+        hasTheme: Boolean(document.querySelector('[data-legisdex-theme-toggle]'))
+      }))()`,
+      true,
+    );
+  } catch {
+    return { hasSidebar: false, hasTheme: false };
+  }
+};
+
+const sendTopbarState = async () => {
+  if (!mainWindow || !topbarView || topbarView.webContents.isDestroyed()) {
+    return;
+  }
+
+  const { hasSidebar, hasTheme } = await getMainContentActions();
+  const location = getTopbarLocation(
+    mainWindow.webContents.getURL(),
+    mainWindow.webContents.getTitle(),
   );
 
-  await window.loadFile(fallbackFilePath);
+  topbarView.webContents.send('legisdex:topbar-state', {
+    ...location,
+    canGoBack: mainWindow.webContents.canGoBack(),
+    canGoForward: mainWindow.webContents.canGoForward(),
+    isLoading: isMainContentLoading,
+    hasSidebar,
+    hasTheme,
+  });
+};
+
+const clickMainContentSelector = async (selector: string) => {
+  if (!mainWindow) {
+    return;
+  }
+
+  await mainWindow.webContents.executeJavaScript(
+    `(() => {
+      const control = document.querySelector(${JSON.stringify(selector)});
+      if (control instanceof HTMLElement) {
+        control.click();
+        return true;
+      }
+      return false;
+    })()`,
+    true,
+  );
 };
 
 const createWindow = async () => {
@@ -194,7 +412,7 @@ const createWindow = async () => {
     titleBarOverlay: {
       color: '#00000000',
       symbolColor: '#f8fafc',
-      height: 40,
+      height: TITLEBAR_HEIGHT,
     },
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -212,6 +430,22 @@ const createWindow = async () => {
     `${mainWindow.webContents.getUserAgent()} LegisDexDesktop/${app.getVersion()}`,
   );
 
+  topbarView = new BrowserView({
+    webPreferences: {
+      preload: path.join(__dirname, 'topbar-preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      devTools: !app.isPackaged,
+    },
+  });
+
+  mainWindow.setBrowserView(topbarView);
+  updateTopbarBounds();
+  await loadTopbar(topbarView);
+
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
 
@@ -219,6 +453,14 @@ const createWindow = async () => {
       mainWindow?.webContents.openDevTools({ mode: 'detach' });
     }
   });
+
+  topbarView.webContents.on('did-finish-load', () => {
+    void sendTopbarState();
+  });
+
+  mainWindow.on('resize', updateTopbarBounds);
+  mainWindow.on('maximize', updateTopbarBounds);
+  mainWindow.on('unmaximize', updateTopbarBounds);
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     const desktopUrl = getDesktopNavigationUrl(url, legisDexUrl);
@@ -228,42 +470,53 @@ const createWindow = async () => {
       return { action: 'deny' };
     }
 
+    if (isSameAppNavigation(url, legisDexUrl)) {
+      return { action: 'deny' };
+    }
+
     openOutsideDesktop(url);
 
     return { action: 'deny' };
   });
 
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    const desktopUrl = getDesktopNavigationUrl(url, legisDexUrl);
-
-    if (!desktopUrl) {
+    if (!isSameAppNavigation(url, legisDexUrl)) {
       event.preventDefault();
       openOutsideDesktop(url);
-      return;
-    }
-
-    if (desktopUrl !== url) {
-      event.preventDefault();
-      mainWindow?.loadURL(desktopUrl);
     }
   });
 
+  mainWindow.webContents.on('did-start-loading', () => {
+    isMainContentLoading = true;
+    void sendTopbarState();
+  });
+
+  mainWindow.webContents.on('did-stop-loading', () => {
+    isMainContentLoading = false;
+    void sendTopbarState();
+  });
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    void sendTopbarState();
+    setTimeout(() => void sendTopbarState(), 500);
+  });
+
+  mainWindow.webContents.on('page-title-updated', () => {
+    void sendTopbarState();
+  });
+
+  mainWindow.webContents.on('did-navigate', () => {
+    void sendTopbarState();
+  });
+
   mainWindow.webContents.on('did-navigate-in-page', (_event, url) => {
-    if (url.startsWith('file:')) {
-      return;
-    }
-
-    const desktopUrl = getDesktopNavigationUrl(url, legisDexUrl);
-
-    if (desktopUrl) {
-      if (desktopUrl !== url) {
-        mainWindow?.loadURL(desktopUrl);
-      }
+    if (url.startsWith('file:') || isSameAppNavigation(url, legisDexUrl)) {
+      void sendTopbarState();
       return;
     }
 
     openOutsideDesktop(url);
-    mainWindow?.loadURL(legisDexUrl);
+    void sendTopbarState();
   });
 
   mainWindow.webContents.on('did-fail-load', async (_event, _code, _desc, url) => {
@@ -303,6 +556,37 @@ ipcMain.handle('legisdex:get-config', () => ({
   isPackaged: app.isPackaged,
 }));
 
+ipcMain.handle('legisdex:topbar-action', async (_event, action: string) => {
+  if (!mainWindow) {
+    return;
+  }
+
+  if (action === 'back' && mainWindow.webContents.canGoBack()) {
+    mainWindow.webContents.goBack();
+    return;
+  }
+
+  if (action === 'forward' && mainWindow.webContents.canGoForward()) {
+    mainWindow.webContents.goForward();
+    return;
+  }
+
+  if (action === 'reload') {
+    mainWindow.webContents.reload();
+    return;
+  }
+
+  if (action === 'toggle-sidebar') {
+    await clickMainContentSelector('[data-legisdex-sidebar-trigger]');
+    setTimeout(() => void sendTopbarState(), 150);
+    return;
+  }
+
+  if (action === 'toggle-theme') {
+    await clickMainContentSelector('[data-legisdex-theme-toggle]');
+  }
+});
+
 ipcMain.handle('legisdex:retry', async () => {
   if (!mainWindow) {
     return;
@@ -312,5 +596,9 @@ ipcMain.handle('legisdex:retry', async () => {
 });
 
 ipcMain.handle('legisdex:open-external', async (_event, url: string) => {
+  if (isSameAppNavigation(url, getLegisDexUrl())) {
+    return;
+  }
+
   await openOutsideDesktop(url);
 });
