@@ -35,11 +35,44 @@ body {
 }
 
 body.topbar-surface {
+  --topbar-foreground: oklch(0.985 0.002 286);
+  --topbar-muted: oklch(0.82 0.012 286);
+  --topbar-muted-disabled: oklch(0.62 0.01 286 / 0.46);
+  --topbar-background:
+    linear-gradient(
+      180deg,
+      oklch(0.19 0.007 286 / 0.99),
+      oklch(0.17 0.006 286 / 0.99)
+    ),
+    #202024;
+  --topbar-border: oklch(1 0 0 / 0.1);
+  --topbar-divider: oklch(1 0 0 / 0.1);
+  --topbar-shadow: 0 10px 24px oklch(0.03 0.004 286 / 0.2);
+  --topbar-hover-background: oklch(1 0 0 / 0.08);
+  --topbar-hover-border: oklch(1 0 0 / 0.09);
   min-width: 0;
   min-height: 40px;
   overflow: hidden;
-  color: oklch(0.985 0.002 286);
+  color: var(--topbar-foreground);
   background: transparent;
+}
+
+body.topbar-surface[data-theme="light"] {
+  --topbar-foreground: oklch(0.21 0.006 285.885);
+  --topbar-muted: oklch(0.46 0.014 285.938);
+  --topbar-muted-disabled: oklch(0.63 0.012 286 / 0.5);
+  --topbar-background:
+    linear-gradient(
+      180deg,
+      oklch(0.995 0 0 / 0.98),
+      oklch(0.975 0.002 286.32 / 0.98)
+    ),
+    #f5f5f5;
+  --topbar-border: oklch(0.92 0.004 286.32);
+  --topbar-divider: oklch(0.9 0.004 286.32);
+  --topbar-shadow: 0 10px 24px oklch(0.75 0.01 286 / 0.14);
+  --topbar-hover-background: oklch(0.96 0.002 286.32);
+  --topbar-hover-border: oklch(0.88 0.004 286.32);
 }
 
 body.fallback-surface {
@@ -183,16 +216,10 @@ h1 {
   width: 100vw;
   height: 40px;
   overflow: hidden;
-  color: oklch(0.985 0.002 286);
-  background:
-    linear-gradient(
-      180deg,
-      oklch(0.19 0.007 286 / 0.99),
-      oklch(0.17 0.006 286 / 0.99)
-    ),
-    #202024;
-  border-bottom: 1px solid oklch(1 0 0 / 0.1);
-  box-shadow: 0 10px 24px oklch(0.03 0.004 286 / 0.2);
+  color: var(--topbar-foreground);
+  background: var(--topbar-background);
+  border-bottom: 1px solid var(--topbar-border);
+  box-shadow: var(--topbar-shadow);
   font-family:
     Inter,
     ui-sans-serif,
@@ -237,7 +264,7 @@ h1 {
 .topbar-brand {
   flex: 0 1 auto;
   margin-right: 2px;
-  color: oklch(0.985 0.002 286);
+  color: var(--topbar-foreground);
   font-size: 12px;
   font-weight: 780;
   letter-spacing: 0;
@@ -248,7 +275,7 @@ h1 {
   width: 1px;
   height: 18px;
   margin: 0 3px;
-  background: oklch(1 0 0 / 0.1);
+  background: var(--topbar-divider);
 }
 
 .topbar-icon-button {
@@ -262,7 +289,7 @@ h1 {
   border: 1px solid transparent;
   border-radius: 8px;
   padding: 0;
-  color: oklch(0.82 0.012 286);
+  color: var(--topbar-muted);
   background: transparent;
   box-shadow: none;
   cursor: pointer;
@@ -274,9 +301,9 @@ h1 {
 }
 
 .topbar-icon-button:hover {
-  color: oklch(0.985 0.002 286);
-  background: oklch(1 0 0 / 0.08);
-  border-color: oklch(1 0 0 / 0.09);
+  color: var(--topbar-foreground);
+  background: var(--topbar-hover-background);
+  border-color: var(--topbar-hover-border);
   transform: none;
 }
 
@@ -286,7 +313,7 @@ h1 {
 }
 
 .topbar-icon-button:disabled {
-  color: oklch(0.62 0.01 286 / 0.46);
+  color: var(--topbar-muted-disabled);
   pointer-events: none;
 }
 
