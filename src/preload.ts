@@ -102,4 +102,6 @@ contextBridge.exposeInMainWorld('legisdexDesktop', {
   getConfig: () => ipcRenderer.invoke('legisdex:get-config'),
   retry: () => ipcRenderer.invoke('legisdex:retry'),
   openExternal: (url: string) => ipcRenderer.invoke('legisdex:open-external', url),
+  openInBrowser: (url: string) =>
+    ipcRenderer.invoke('legisdex:open-in-browser', url),
 });

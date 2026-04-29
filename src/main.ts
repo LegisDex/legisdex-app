@@ -159,6 +159,14 @@ const openOutsideDesktop = async (url: string) => {
   }
 };
 
+const openInBrowser = async (url: string) => {
+  if (!isHttpUrl(url)) {
+    return;
+  }
+
+  await shell.openExternal(url);
+};
+
 const isTrustedAppUrl = (url: string) => {
   try {
     const parsedUrl = new URL(url);
@@ -565,4 +573,8 @@ ipcMain.handle('legisdex:open-external', async (_event, url: string) => {
   }
 
   await openOutsideDesktop(url);
+});
+
+ipcMain.handle('legisdex:open-in-browser', async (_event, url: string) => {
+  await openInBrowser(url);
 });

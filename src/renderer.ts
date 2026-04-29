@@ -12,6 +12,7 @@ type DesktopBridge = {
   getConfig: () => Promise<DesktopConfig>;
   retry: () => Promise<void>;
   openExternal: (url: string) => Promise<void>;
+  openInBrowser: (url: string) => Promise<void>;
 };
 
 type TopbarAction =
@@ -140,7 +141,7 @@ const initFallback = async () => {
   });
 
   browserButton?.addEventListener('click', () => {
-    window.legisdexDesktop?.openExternal(config.url);
+    window.legisdexDesktop?.openInBrowser(config.url);
   });
 };
 
