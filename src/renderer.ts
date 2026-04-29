@@ -69,7 +69,7 @@ const icon = {
   reload:
     '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15.3 6.6A6 6 0 1 0 16 10" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/><path d="M15.5 3.7v3.1h-3.1" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   theme:
-    '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3.2a6.8 6.8 0 1 0 0 13.6 5.3 5.3 0 0 1 0-13.6Z" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linejoin="round"/></svg>',
+    '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13.8 13.8A6.2 6.2 0 0 1 6.2 6.2 5.6 5.6 0 1 0 13.8 13.8Z" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/></svg>',
 };
 
 const initTopbar = () => {
