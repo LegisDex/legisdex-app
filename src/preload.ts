@@ -8,15 +8,7 @@ type DesktopConfig = {
   isPackaged: boolean;
 };
 
-const TITLEBAR_HEIGHT = 40;
-
 let desktopConfig: DesktopConfig | null = null;
-
-document.documentElement.dataset.legisdexRuntime = 'desktop';
-document.documentElement.style.setProperty(
-  '--legisdex-titlebar-height',
-  `${TITLEBAR_HEIGHT}px`,
-);
 
 const isAllowedPath = (pathName: string) =>
   desktopConfig?.allowedPathPrefixes.some(

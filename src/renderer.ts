@@ -22,13 +22,8 @@ type TopbarAction =
   | 'toggle-theme';
 
 type TopbarState = {
-  section: string;
-  detail: string;
   canGoBack: boolean;
   canGoForward: boolean;
-  isLoading: boolean;
-  hasSidebar: boolean;
-  hasTheme: boolean;
 };
 
 type TopbarBridge = {
@@ -90,30 +85,12 @@ const initTopbar = () => {
         <button class="topbar-icon-button" type="button" data-action="toggle-sidebar" aria-label="Toggle sidebar" title="Toggle sidebar">${icon.sidebar}</button>
         <button class="topbar-icon-button" type="button" data-action="back" aria-label="Back" title="Back">${icon.back}</button>
         <button class="topbar-icon-button" type="button" data-action="forward" aria-label="Forward" title="Forward">${icon.forward}</button>
-      </div>
-      <div class="topbar-location" aria-live="polite">
-        <span class="topbar-section" data-section>Workspace</span>
-        <span class="topbar-location-divider" data-divider>/</span>
-        <span class="topbar-detail" data-detail></span>
-        <span class="topbar-loading" data-loading aria-label="Loading"></span>
-      </div>
-      <div class="topbar-right">
         <button class="topbar-icon-button" type="button" data-action="reload" aria-label="Reload" title="Reload">${icon.reload}</button>
         <button class="topbar-icon-button" type="button" data-action="toggle-theme" aria-label="Toggle theme" title="Toggle theme">${icon.theme}</button>
       </div>
     </main>
   `;
 
-  const section = document.querySelector<HTMLElement>('[data-section]');
-  const detail = document.querySelector<HTMLElement>('[data-detail]');
-  const divider = document.querySelector<HTMLElement>('[data-divider]');
-  const loading = document.querySelector<HTMLElement>('[data-loading]');
-  const sidebarButton = document.querySelector<HTMLButtonElement>(
-    '[data-action="toggle-sidebar"]',
-  );
-  const themeButton = document.querySelector<HTMLButtonElement>(
-    '[data-action="toggle-theme"]',
-  );
   const backButton = document.querySelector<HTMLButtonElement>('[data-action="back"]');
   const forwardButton =
     document.querySelector<HTMLButtonElement>('[data-action="forward"]');
@@ -131,28 +108,6 @@ const initTopbar = () => {
   });
 
   window.legisdexTopbar?.onState((state) => {
-    if (section) {
-      section.textContent = state.section;
-    }
-
-    if (detail && divider) {
-      detail.textContent = state.detail;
-      detail.hidden = !state.detail;
-      divider.hidden = !state.detail;
-    }
-
-    if (loading) {
-      loading.hidden = !state.isLoading;
-    }
-
-    if (sidebarButton) {
-      sidebarButton.hidden = !state.hasSidebar;
-    }
-
-    if (themeButton) {
-      themeButton.hidden = !state.hasTheme;
-    }
-
     if (backButton) {
       backButton.disabled = !state.canGoBack;
     }
