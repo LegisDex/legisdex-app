@@ -1,18 +1,20 @@
 {
   "name": "legisdex-app",
-  "productName": "legisdex-app",
+  "productName": "LegisDex",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "Desktop shell for the LegisDex web app",
   "main": ".vite/build/main.js",
   "private": true,
   "scripts": {
     "start": "electron-forge start",
+    "start:local": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx ."
   },
   "keywords": [],
+  "homepage": "https://www.legisdex.com",
   "author": {
     "name": "Dilukshan",
     "email": "65407969+dilukshann7@users.noreply.github.com"
