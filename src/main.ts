@@ -23,6 +23,10 @@ const DESKTOP_START_PATH = '/chat';
 const TITLEBAR_HEIGHT = 40;
 const TITLEBAR_BACKGROUND = '#202024';
 const TITLEBAR_OVERLAY_BACKGROUND = '#00000000';
+const LIGHT_WINDOW_BACKGROUND = '#f5f5f5';
+const DARK_WINDOW_BACKGROUND = TITLEBAR_BACKGROUND;
+const LIGHT_TITLEBAR_SYMBOL_COLOR = '#111827';
+const DARK_TITLEBAR_SYMBOL_COLOR = '#f8fafc';
 const DESKTOP_PATH_ALIASES = [
   ['/account', '/chat/account'],
   ['/checkout', '/chat/checkout'],
@@ -229,6 +233,8 @@ let topbarView: BrowserView | null = null;
 let createWindowPromise: Promise<void> | null = null;
 let pendingDesktopAuthExchangeUrl: string | null = null;
 
+type DesktopTheme = 'light' | 'dark';
+
 const getRendererIndexPath = () =>
   path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`);
 
@@ -375,6 +381,44 @@ const updateBrowserViewBounds = () => {
   });
 };
 
+const getMainContentTheme = async (): Promise<DesktopTheme> => {
+  const contents = getMainContentWebContents();
+
+  if (!contents) {
+    return 'dark';
+  }
+
+  try {
+    const theme = await contents.executeJavaScript(
+      `(() => document.documentElement.classList.contains('dark') ? 'dark' : 'light')()`,
+      true,
+    );
+
+    return theme === 'dark' ? 'dark' : 'light';
+  } catch {
+    return 'dark';
+  }
+};
+
+const applyDesktopTheme = (theme: DesktopTheme) => {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+
+  const isDark = theme === 'dark';
+
+  mainWindow.setBackgroundColor(
+    isDark ? DARK_WINDOW_BACKGROUND : LIGHT_WINDOW_BACKGROUND,
+  );
+  mainWindow.setTitleBarOverlay({
+    color: TITLEBAR_OVERLAY_BACKGROUND,
+    symbolColor: isDark
+      ? DARK_TITLEBAR_SYMBOL_COLOR
+      : LIGHT_TITLEBAR_SYMBOL_COLOR,
+    height: TITLEBAR_HEIGHT,
+  });
+};
+
 const sendTopbarState = async () => {
   const contents = getMainContentWebContents();
 
@@ -382,9 +426,14 @@ const sendTopbarState = async () => {
     return;
   }
 
+  const theme = await getMainContentTheme();
+
+  applyDesktopTheme(theme);
+
   topbarView.webContents.send('legisdex:topbar-state', {
     canGoBack: contents.canGoBack(),
     canGoForward: contents.canGoForward(),
+    theme,
   });
 };
 
@@ -717,6 +766,7 @@ ipcMain.handle('legisdex:topbar-action', async (_event, action: string) => {
 
   if (action === 'toggle-theme') {
     await clickMainContentSelector('[data-legisdex-theme-toggle]');
+    setTimeout(() => void sendTopbarState(), 200);
   }
 });
 
