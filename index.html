@@ -1,13 +1,33 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Hello World!</title>
-
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <title>LegisDex</title>
   </head>
   <body>
-    <h1>💖 Hello World!</h1>
-    <p>Welcome to your Electron application.</p>
+    <main class="shell">
+      <section class="panel" aria-labelledby="title">
+        <div class="brand">
+          <span class="mark">
+            <img src="/logo-small.png" alt="" />
+          </span>
+          <span>LegisDex</span>
+        </div>
+        <p class="eyebrow">Desktop workspace</p>
+        <h1 id="title">Connect to your contract intelligence workspace.</h1>
+        <p data-status class="status">Checking the LegisDex app...</p>
+        <div class="actions">
+          <button type="button" data-retry>Retry Connection</button>
+          <button type="button" data-browser class="secondary">Open Web App</button>
+        </div>
+      </section>
+    </main>
     <script type="module" src="/src/renderer.ts"></script>
   </body>
 </html>
