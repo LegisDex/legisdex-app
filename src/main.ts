@@ -14,6 +14,9 @@ if (started) {
   app.quit();
 }
 
+const DESKTOP_PROTOCOL = 'legisdex';
+const DESKTOP_AUTH_HOST = 'auth';
+const DESKTOP_AUTH_CALLBACK_PATH = '/callback';
 const FALLBACK_WEB_URL = 'https://www.legisdex.com';
 const LOCAL_WEB_URL = 'http://localhost:3000';
 const DESKTOP_START_PATH = '/chat';
@@ -223,6 +226,8 @@ const configureAppSecurity = () => {
 let mainWindow: BrowserWindow | null = null;
 let mainContentView: BrowserView | null = null;
 let topbarView: BrowserView | null = null;
+let createWindowPromise: Promise<void> | null = null;
+let pendingDesktopAuthExchangeUrl: string | null = null;
 
 const getRendererIndexPath = () =>
   path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`);
@@ -247,6 +252,66 @@ const getMainContentWebContents = () => {
   }
 
   return mainContentView.webContents;
+};
+
+const extractDesktopProtocolUrl = (argv: string[]) =>
+  argv.find((value) => value.startsWith(`${DESKTOP_PROTOCOL}://`)) ?? null;
+
+const registerDesktopProtocol = () => {
+  if (process.defaultApp && process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient(DESKTOP_PROTOCOL, process.execPath, [
+      path.resolve(process.argv[1]),
+    ]);
+    return;
+  }
+
+  app.setAsDefaultProtocolClient(DESKTOP_PROTOCOL);
+};
+
+const getDesktopAuthExchangeUrl = (protocolUrl: string) => {
+  try {
+    const deepLinkUrl = new URL(protocolUrl);
+
+    if (
+      deepLinkUrl.protocol !== `${DESKTOP_PROTOCOL}:` ||
+      deepLinkUrl.hostname !== DESKTOP_AUTH_HOST ||
+      deepLinkUrl.pathname !== DESKTOP_AUTH_CALLBACK_PATH
+    ) {
+      return null;
+    }
+
+    const handoff = deepLinkUrl.searchParams.get('handoff')?.trim();
+
+    if (!handoff) {
+      return null;
+    }
+
+    const exchangeUrl = new URL(
+      '/api/auth/desktop/exchange',
+      getLegisDexBaseUrl(),
+    );
+    exchangeUrl.searchParams.set('handoff', handoff);
+
+    return exchangeUrl.toString();
+  } catch {
+    return null;
+  }
+};
+
+const focusMainWindow = () => {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+
+  if (!mainWindow.isVisible()) {
+    mainWindow.show();
+  }
+
+  mainWindow.focus();
 };
 
 const loadLegisDex = async () => {
@@ -343,7 +408,7 @@ const clickMainContentSelector = async (selector: string) => {
   );
 };
 
-const createWindow = async () => {
+const createWindow = async (initialUrl = getLegisDexUrl()) => {
   const legisDexUrl = getLegisDexUrl();
 
   mainWindow = new BrowserWindow({
@@ -416,7 +481,7 @@ const createWindow = async () => {
     }
   });
 
-  await loadLegisDex();
+  await mainContentView.webContents.loadURL(initialUrl);
   await loadTopbar(topbarView);
 
   topbarView.webContents.on('did-finish-load', () => {
@@ -485,9 +550,9 @@ const createWindow = async () => {
   mainContentView.webContents.on(
     'did-fail-load',
     async (_event, _code, _desc, url) => {
-    if (url === legisDexUrl) {
-      await loadFallback();
-    }
+      if (url && isSameAppNavigation(url, legisDexUrl)) {
+        await loadFallback();
+      }
     },
   );
 
@@ -498,12 +563,102 @@ const createWindow = async () => {
   });
 };
 
+const ensureMainWindow = async (initialUrl = getLegisDexUrl()) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    return;
+  }
+
+  if (!createWindowPromise) {
+    createWindowPromise = createWindow(initialUrl).finally(() => {
+      createWindowPromise = null;
+    });
+  }
+
+  await createWindowPromise;
+};
+
+const consumePendingDesktopAuthExchange = async () => {
+  if (!pendingDesktopAuthExchangeUrl) {
+    return;
+  }
+
+  const exchangeUrl = pendingDesktopAuthExchangeUrl;
+  pendingDesktopAuthExchangeUrl = null;
+
+  if (!app.isReady()) {
+    pendingDesktopAuthExchangeUrl = exchangeUrl;
+    return;
+  }
+
+  await ensureMainWindow(exchangeUrl);
+  focusMainWindow();
+
+  const contents = getMainContentWebContents();
+
+  if (!contents) {
+    pendingDesktopAuthExchangeUrl = exchangeUrl;
+    return;
+  }
+
+  if (contents.getURL() !== exchangeUrl) {
+    await contents.loadURL(exchangeUrl);
+  }
+};
+
+const queueDesktopProtocolUrl = (url: string) => {
+  const exchangeUrl = getDesktopAuthExchangeUrl(url);
+
+  if (!exchangeUrl) {
+    return false;
+  }
+
+  pendingDesktopAuthExchangeUrl = exchangeUrl;
+
+  if (app.isReady()) {
+    void consumePendingDesktopAuthExchange();
+  }
+
+  return true;
+};
+
 app.setAppUserModelId('com.legisdex.desktop');
+registerDesktopProtocol();
+
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+
+if (!gotSingleInstanceLock) {
+  app.quit();
+}
+
+const initialDesktopProtocolUrl = extractDesktopProtocolUrl(process.argv);
+
+if (initialDesktopProtocolUrl) {
+  queueDesktopProtocolUrl(initialDesktopProtocolUrl);
+}
+
+app.on('second-instance', (_event, commandLine) => {
+  const desktopProtocolUrl = extractDesktopProtocolUrl(commandLine);
+
+  if (desktopProtocolUrl) {
+    queueDesktopProtocolUrl(desktopProtocolUrl);
+    return;
+  }
+
+  focusMainWindow();
+});
+
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  queueDesktopProtocolUrl(url);
+});
 
 app.on('ready', async () => {
   configureAppSecurity();
   Menu.setApplicationMenu(null);
-  await createWindow();
+  const initialUrl = pendingDesktopAuthExchangeUrl ?? getLegisDexUrl();
+  pendingDesktopAuthExchangeUrl = null;
+  await ensureMainWindow(initialUrl);
+  await consumePendingDesktopAuthExchange();
 });
 
 app.on('window-all-closed', () => {
@@ -514,8 +669,14 @@ app.on('window-all-closed', () => {
 
 app.on('activate', async () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    await createWindow();
+    const initialUrl = pendingDesktopAuthExchangeUrl ?? getLegisDexUrl();
+    pendingDesktopAuthExchangeUrl = null;
+    await ensureMainWindow(initialUrl);
+    await consumePendingDesktopAuthExchange();
+    return;
   }
+
+  focusMainWindow();
 });
 
 ipcMain.handle('legisdex:get-config', () => ({
