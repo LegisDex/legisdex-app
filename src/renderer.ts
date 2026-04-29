@@ -25,6 +25,7 @@ type TopbarAction =
 type TopbarState = {
   canGoBack: boolean;
   canGoForward: boolean;
+  theme: 'light' | 'dark';
 };
 
 type TopbarBridge = {

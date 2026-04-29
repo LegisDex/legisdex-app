@@ -8,13 +8,9 @@ type TopbarAction =
   | 'toggle-theme';
 
 type TopbarState = {
-  section: string;
-  detail: string;
   canGoBack: boolean;
   canGoForward: boolean;
-  isLoading: boolean;
-  hasSidebar: boolean;
-  hasTheme: boolean;
+  theme: 'light' | 'dark';
 };
 
 contextBridge.exposeInMainWorld('legisdexTopbar', {
