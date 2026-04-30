@@ -48,7 +48,7 @@ const DESKTOP_PATH_PREFIXES = [
   '/api/auth',
 ];
 const PUBLIC_ASSET_DIR = 'public';
-const WINDOW_ICON = 'favicon.ico';
+const WINDOW_ICON = 'logo-small.png';
 
 const getLegisDexBaseUrl = () => {
   const configuredUrl = process.env.LEGISDEX_WEB_URL?.trim();
