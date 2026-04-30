@@ -65,7 +65,7 @@ const config: ForgeConfig = {
         productName: 'LegisDex',
         icon: linuxIconPath,
         categories: ['Office'],
-        maintainer: 'Dilukshan <65407969+dilukshann7@users.noreply.github.com>',
+        maintainer: 'LegisDex <info@legisdex.com>',
         homepage: 'https://www.legisdex.com',
       },
     }),
