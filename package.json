@@ -1,28 +1,59 @@
 {
   "name": "legisdex-app",
   "productName": "LegisDex",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Desktop shell for the LegisDex web app",
   "main": ".vite/build/main.js",
   "private": true,
+  "packageManager": "npm@10",
   "scripts": {
     "start": "electron-forge start",
     "start:local": "electron-forge start",
     "package": "electron-forge package",
+    "package:win:x64": "electron-forge package --platform=win32 --arch=x64",
+    "package:win:arm64": "electron-forge package --platform=win32 --arch=arm64",
+    "package:mac:x64": "electron-forge package --platform=darwin --arch=x64",
+    "package:mac:arm64": "electron-forge package --platform=darwin --arch=arm64",
+    "package:linux:x64": "electron-forge package --platform=linux --arch=x64",
+    "package:linux:arm64": "electron-forge package --platform=linux --arch=arm64",
     "make": "electron-forge make",
+    "make:win:x64": "electron-forge make --platform=win32 --arch=x64",
+    "make:win:arm64": "electron-forge make --platform=win32 --arch=arm64",
+    "make:mac:x64": "electron-forge make --platform=darwin --arch=x64",
+    "make:mac:arm64": "electron-forge make --platform=darwin --arch=arm64",
+    "make:linux:x64": "electron-forge make --platform=linux --arch=x64",
+    "make:linux:arm64": "electron-forge make --platform=linux --arch=arm64",
     "publish": "electron-forge publish",
-    "lint": "eslint --ext .ts,.tsx ."
+    "lint": "eslint --ext .ts,.tsx .",
+    "typecheck": "tsc --noEmit"
   },
-  "keywords": [],
+  "keywords": [
+    "electron",
+    "desktop",
+    "legaltech",
+    "legisdex"
+  ],
   "homepage": "https://www.legisdex.com",
   "author": {
     "name": "Dilukshan",
     "email": "65407969+dilukshann7@users.noreply.github.com"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LegisDex/legisdex-app.git"
+  },
+  "bugs": {
+    "url": "https://github.com/LegisDex/legisdex-app/issues"
+  },
   "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
   "devDependencies": {
     "@electron-forge/cli": "^7.11.1",
     "@electron-forge/maker-deb": "^7.11.1",
+    "@electron-forge/maker-dmg": "^7.11.1",
     "@electron-forge/maker-rpm": "^7.11.1",
     "@electron-forge/maker-squirrel": "^7.11.1",
     "@electron-forge/maker-zip": "^7.11.1",
@@ -36,7 +67,7 @@
     "electron": "41.3.0",
     "eslint": "^8.57.1",
     "eslint-plugin-import": "^2.32.0",
-    "typescript": "~4.5.4",
+    "typescript": "^5.8.3",
     "vite": "^5.4.21"
   },
   "dependencies": {

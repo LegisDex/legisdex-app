@@ -2,14 +2,18 @@ import type { ForgeConfig } from '@electron-forge/shared-types';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { MakerDeb } from '@electron-forge/maker-deb';
+import { MakerDMG } from '@electron-forge/maker-dmg';
 import { MakerRpm } from '@electron-forge/maker-rpm';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import path from 'node:path';
 
-const iconBasePath = path.resolve(process.cwd(), 'public', 'favicon');
+const publicDir = path.resolve(process.cwd(), 'public');
+const iconBasePath = path.resolve(publicDir, 'favicon');
 const iconFilePath = path.resolve(process.cwd(), 'public', 'favicon.ico');
+const linuxIconPath = path.resolve(publicDir, 'logo-small.png');
+const appBundleId = 'com.legisdex.desktop';
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -17,15 +21,52 @@ const config: ForgeConfig = {
     extraResource: [iconFilePath],
     icon: iconBasePath,
     executableName: 'LegisDex',
+    appBundleId,
+    appCategoryType: 'public.app-category.business',
+    darwinDarkModeSupport: true,
+    protocols: [
+      {
+        name: 'LegisDex Auth',
+        schemes: ['legisdex'],
+      },
+    ],
+    win32metadata: {
+      CompanyName: 'LegisDex',
+      FileDescription: 'LegisDex desktop shell',
+      OriginalFilename: 'LegisDex.exe',
+      ProductName: 'LegisDex',
+    },
   },
   rebuildConfig: {},
   makers: [
     new MakerSquirrel({
       setupIcon: iconFilePath,
+      name: 'legisdex',
     }),
     new MakerZIP({}, ['darwin']),
-    new MakerRpm({}),
-    new MakerDeb({}),
+    new MakerDMG(
+      {
+        format: 'ULFO',
+      },
+      ['darwin'],
+    ),
+    new MakerRpm({
+      options: {
+        productName: 'LegisDex',
+        genericName: 'Legal research desktop app',
+        icon: linuxIconPath,
+        categories: ['Office'],
+      },
+    }),
+    new MakerDeb({
+      options: {
+        productName: 'LegisDex',
+        icon: linuxIconPath,
+        categories: ['Office'],
+        maintainer: 'Dilukshan <65407969+dilukshann7@users.noreply.github.com>',
+        homepage: 'https://www.legisdex.com',
+      },
+    }),
   ],
   plugins: [
     new VitePlugin({
