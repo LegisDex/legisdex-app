@@ -91,21 +91,15 @@ body.topbar-surface {
 }
 
 body.topbar-surface[data-theme="light"] {
-  --topbar-foreground: oklch(0.21 0.006 285.885);
-  --topbar-muted: oklch(0.46 0.014 285.938);
-  --topbar-muted-disabled: oklch(0.63 0.012 286 / 0.5);
-  --topbar-background:
-    linear-gradient(
-      180deg,
-      oklch(0.995 0 0 / 0.98),
-      oklch(0.975 0.002 286.32 / 0.98)
-    ),
-    #f5f5f5;
-  --topbar-border: oklch(0.92 0.004 286.32);
-  --topbar-divider: oklch(0.9 0.004 286.32);
-  --topbar-shadow: 0 10px 24px oklch(0.75 0.01 286 / 0.14);
-  --topbar-hover-background: oklch(0.96 0.002 286.32);
-  --topbar-hover-border: oklch(0.88 0.004 286.32);
+  --topbar-foreground: rgba(24, 24, 27, 0.9);
+  --topbar-muted: rgba(82, 82, 91, 0.8);
+  --topbar-muted-disabled: rgba(161, 161, 170, 0.5);
+  --topbar-background: rgba(250, 250, 252, 0.97);
+  --topbar-border: rgba(0, 0, 0, 0.08);
+  --topbar-divider: rgba(0, 0, 0, 0.07);
+  --topbar-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+  --topbar-hover-background: rgba(0, 0, 0, 0.04);
+  --topbar-hover-border: rgba(0, 0, 0, 0.08);
 }
 
 body.fallback-surface {
@@ -372,14 +366,7 @@ button:active {
   background: var(--topbar-background);
   border-bottom: 1px solid var(--topbar-border);
   box-shadow: var(--topbar-shadow);
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  font-family: inherit;
   -webkit-app-region: drag;
   user-select: none;
 }
@@ -387,24 +374,26 @@ button:active {
 .topbar-left {
   display: flex;
   align-items: center;
-  gap: 6.1px;
+  gap: 6px;
   min-width: max-content;
   height: 100%;
-  padding-left: 10px;
-  padding-right: 10px;
+  padding: 0 10px;
   -webkit-app-region: drag;
 }
 
 .topbar-mark {
   display: grid;
-  flex: 0 0 22px;
-  width: 22px;
-  height: 22px;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
   place-items: center;
   overflow: hidden;
   border: 0;
   border-radius: 0;
   background: transparent;
+  min-height: unset;
+  padding: 0;
+  box-shadow: none;
 }
 
 .topbar-mark img {
@@ -415,40 +404,39 @@ button:active {
 
 .topbar-brand {
   flex: 0 1 auto;
-  margin-right: 2px;
   color: var(--topbar-foreground);
   font-size: 12px;
-  font-weight: 780;
-  letter-spacing: 0;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .topbar-divider {
   flex: 0 0 1px;
   width: 1px;
-  height: 18px;
-  margin: 0 3px;
+  height: 16px;
+  margin: 0 2px;
   background: var(--topbar-divider);
 }
 
 .topbar-icon-button {
   display: grid;
-  flex: 0 0 28px;
-  width: 28px;
-  height: 28px;
-  max-width: 28px;
-  min-height: 28px;
+  flex: 0 0 26px;
+  width: 26px;
+  height: 26px;
+  min-height: 26px;
+  max-width: 26px;
   place-items: center;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 0;
   color: var(--topbar-muted);
   background: transparent;
   box-shadow: none;
   cursor: pointer;
   transition:
-    color 150ms ease,
-    background 150ms ease,
-    border-color 150ms ease;
+    color 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease;
   -webkit-app-region: no-drag;
 }
 
@@ -460,7 +448,7 @@ button:active {
 }
 
 .topbar-icon-button:focus-visible {
-  outline: 2px solid oklch(0.705 0.015 286.067);
+  outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 
@@ -474,8 +462,8 @@ button:active {
 }
 
 .topbar-icon-button svg {
-  width: 17px;
-  height: 17px;
+  width: 15px;
+  height: 15px;
 }
 
 .topbar-location {
@@ -484,11 +472,11 @@ button:active {
   min-width: 0;
   max-width: 100%;
   height: 100%;
-  gap: 7px;
-  padding: 0 14px;
+  gap: 6px;
+  padding: 0 12px;
   overflow: hidden;
-  border-left: 1px solid oklch(1 0 0 / 0.07);
-  color: oklch(0.77 0.012 286);
+  border-left: 1px solid var(--topbar-divider);
+  color: var(--topbar-muted);
   -webkit-app-region: drag;
 }
 
@@ -501,21 +489,22 @@ button:active {
 }
 
 .topbar-section {
-  color: oklch(0.985 0.002 286);
+  color: var(--topbar-foreground);
   font-size: 12px;
-  font-weight: 780;
+  font-weight: 600;
 }
 
 .topbar-location-divider {
-  color: oklch(0.62 0.01 286);
+  color: var(--topbar-muted);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 500;
+  opacity: 0.5;
 }
 
 .topbar-detail {
-  color: oklch(0.75 0.012 286);
+  color: var(--topbar-muted);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 500;
 }
 
 .topbar-detail[hidden],
@@ -529,6 +518,6 @@ button:active {
   height: 6px;
   margin-left: 2px;
   border-radius: 999px;
-  background: oklch(0.76 0.09 195);
-  box-shadow: 0 0 12px oklch(0.76 0.09 195 / 0.75);
+  background: var(--green);
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.6);
 }
