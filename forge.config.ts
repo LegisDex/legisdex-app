@@ -52,6 +52,7 @@ const config: ForgeConfig = {
     ),
     new MakerRpm({
       options: {
+        bin: 'LegisDex',
         productName: 'LegisDex',
         genericName: 'Legal research desktop app',
         icon: linuxIconPath,
@@ -60,6 +61,7 @@ const config: ForgeConfig = {
     }),
     new MakerDeb({
       options: {
+        bin: 'LegisDex',
         productName: 'LegisDex',
         icon: linuxIconPath,
         categories: ['Office'],
