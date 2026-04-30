@@ -14,6 +14,39 @@ const iconBasePath = path.resolve(publicDir, 'favicon');
 const iconFilePath = path.resolve(process.cwd(), 'public', 'favicon.ico');
 const linuxIconPath = path.resolve(publicDir, 'logo-small.png');
 const appBundleId = 'com.legisdex.desktop';
+const windowsCertificateFile = process.env.WINDOWS_CERTIFICATE_FILE?.trim();
+const windowsCertificatePassword = process.env.WINDOWS_CERTIFICATE_PASSWORD?.trim();
+const appleSigningIdentity = process.env.APPLE_SIGNING_IDENTITY?.trim();
+const appleKeychain = process.env.APPLE_KEYCHAIN?.trim();
+const appleId = process.env.APPLE_ID?.trim();
+const appleAppSpecificPassword = process.env.APPLE_APP_SPECIFIC_PASSWORD?.trim();
+const appleTeamId = process.env.APPLE_TEAM_ID?.trim();
+
+const windowsSign =
+  windowsCertificateFile && windowsCertificatePassword
+    ? {
+        certificateFile: windowsCertificateFile,
+        certificatePassword: windowsCertificatePassword,
+        description: 'LegisDex desktop shell',
+        website: 'https://www.legisdex.com',
+      }
+    : undefined;
+
+const osxSign = appleSigningIdentity
+  ? {
+      identity: appleSigningIdentity,
+      ...(appleKeychain ? { keychain: appleKeychain } : {}),
+    }
+  : undefined;
+
+const osxNotarize =
+  appleId && appleAppSpecificPassword && appleTeamId
+    ? {
+        appleId,
+        appleIdPassword: appleAppSpecificPassword,
+        teamId: appleTeamId,
+      }
+    : undefined;
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -24,6 +57,9 @@ const config: ForgeConfig = {
     appBundleId,
     appCategoryType: 'public.app-category.business',
     darwinDarkModeSupport: true,
+    ...(osxSign ? { osxSign } : {}),
+    ...(osxNotarize ? { osxNotarize } : {}),
+    ...(windowsSign ? { windowsSign } : {}),
     protocols: [
       {
         name: 'LegisDex Auth',
@@ -41,12 +77,23 @@ const config: ForgeConfig = {
   makers: [
     new MakerSquirrel({
       setupIcon: iconFilePath,
+      iconUrl: 'https://www.legisdex.com/favicon.ico',
       name: 'legisdex',
+      setupExe: 'LegisDexSetup.exe',
+      ...(windowsSign ? { windowsSign } : {}),
     }),
     new MakerZIP({}, ['darwin']),
     new MakerDMG(
       {
         format: 'ULFO',
+        ...(appleSigningIdentity
+          ? {
+              'code-sign': {
+                'signing-identity': appleSigningIdentity,
+                identifier: appBundleId,
+              },
+            }
+          : {}),
       },
       ['darwin'],
     ),
