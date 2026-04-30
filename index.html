@@ -11,20 +11,59 @@
     <title>LegisDex</title>
   </head>
   <body>
+    <div class="noise"></div>
     <main class="shell">
       <section class="panel" aria-labelledby="title">
+        <div class="panel-top-rule"></div>
+
         <div class="brand">
           <span class="mark">
             <img src="./logo-small.png" alt="" />
           </span>
-          <span>LegisDex</span>
+          <span class="brand-name">LegisDex</span>
+          <span class="brand-badge">Desktop</span>
         </div>
-        <p class="eyebrow">Desktop workspace</p>
-        <h1 id="title">Connect to your contract intelligence workspace.</h1>
-        <p data-status class="status">Checking the LegisDex app...</p>
+
+        <div class="content">
+          <p class="eyebrow">
+            <span class="eyebrow-dot"></span>
+            Contract Intelligence
+          </p>
+          <h1 id="title">Connect to your workspace.</h1>
+          <p data-status class="status">Checking the LegisDex app…</p>
+        </div>
+
         <div class="actions">
-          <button type="button" data-retry>Retry Connection</button>
-          <button type="button" data-browser class="secondary">Open Web App</button>
+          <button type="button" data-retry class="btn-primary">
+            Retry Connection
+          </button>
+          <button type="button" data-browser class="btn-secondary">
+            Open Web App
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 12 12"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M2.5 1H11v8.5M11 1 1 11"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <div class="panel-footer">
+          <span class="footer-item">
+            <span class="status-dot"></span>
+            <span data-status-label>Connecting</span>
+          </span>
+          <span class="footer-sep">·</span>
+          <span class="footer-item">LegisDex v1.0</span>
         </div>
       </section>
     </main>
