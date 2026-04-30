@@ -134,6 +134,13 @@ Set these before enabling signed public releases:
 
 This repository is not blocked on those secrets for internal or unsigned builds, but macOS notarization and Windows SmartScreen reputation are much better once signing is configured.
 
+### What the workflow does with those secrets
+
+- On Windows runners, the workflow decodes `WINDOWS_CERTIFICATE_BASE64` into a temporary `.pfx` file and passes it to Electron Forge through `WINDOWS_CERTIFICATE_FILE` and `WINDOWS_CERTIFICATE_PASSWORD`.
+- On macOS runners, the workflow decodes `APPLE_CERTIFICATE_BASE64` into a temporary `.p12`, imports it into a temporary keychain, and passes `APPLE_SIGNING_IDENTITY` plus `APPLE_KEYCHAIN` to Electron Forge for app and DMG signing.
+- If `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, and `APPLE_TEAM_ID` are also present, Electron Forge notarizes the signed macOS app automatically.
+- If the signing secrets are absent, the same workflow still produces unsigned artifacts for internal testing.
+
 ## Release process
 
 1. Update the version in `package.json`.

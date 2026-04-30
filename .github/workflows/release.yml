@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   build:
-    name: ${{ matrix.name }}
+    name: Build — ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -23,25 +23,21 @@ jobs:
           - name: Windows x64
             os: windows-latest
             make_script: make:win:x64
-            artifact_name: legisdex-windows-x64
-          - name: macOS Intel
-            os: macos-13
-            make_script: make:mac:x64
-            artifact_name: legisdex-macos-x64
-          - name: macOS Apple Silicon
+            artifact_name: legisdex-win32-x64
+          - name: macOS arm64 (Apple Silicon)
             os: macos-14
             make_script: make:mac:arm64
-            artifact_name: legisdex-macos-arm64
+            artifact_name: legisdex-darwin-arm64
           - name: Linux x64
             os: ubuntu-22.04
             make_script: make:linux:x64
             artifact_name: legisdex-linux-x64
 
     steps:
-      - name: Check out repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -50,27 +46,77 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Prepare Windows signing certificate
+        if: runner.os == 'Windows' && secrets.WINDOWS_CERTIFICATE_BASE64 != '' && secrets.WINDOWS_CERTIFICATE_PASSWORD != ''
+        shell: pwsh
+        run: |
+          $signingDir = Join-Path $env:RUNNER_TEMP "legisdex-signing"
+          New-Item -ItemType Directory -Force -Path $signingDir | Out-Null
+          $certificatePath = Join-Path $signingDir "windows-signing.pfx"
+          [System.IO.File]::WriteAllBytes($certificatePath, [System.Convert]::FromBase64String("${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}"))
+          "WINDOWS_CERTIFICATE_FILE=$certificatePath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "WINDOWS_CERTIFICATE_PASSWORD=${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Prepare Apple signing keychain
+        if: runner.os == 'macOS' && secrets.APPLE_CERTIFICATE_BASE64 != '' && secrets.APPLE_CERTIFICATE_PASSWORD != '' && secrets.APPLE_SIGNING_IDENTITY != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          signing_dir="$RUNNER_TEMP/legisdex-signing"
+          cert_path="$signing_dir/apple-signing.p12"
+          keychain_path="$signing_dir/legisdex-signing.keychain-db"
+          mkdir -p "$signing_dir"
+          echo "${{ secrets.APPLE_CERTIFICATE_BASE64 }}" | base64 --decode > "$cert_path"
+          security create-keychain -p "${{ secrets.APPLE_CERTIFICATE_PASSWORD }}" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "${{ secrets.APPLE_CERTIFICATE_PASSWORD }}" "$keychain_path"
+          security import "$cert_path" -k "$keychain_path" -P "${{ secrets.APPLE_CERTIFICATE_PASSWORD }}" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/productbuild
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${{ secrets.APPLE_CERTIFICATE_PASSWORD }}" "$keychain_path"
+          security list-keychains -d user -s "$keychain_path" login.keychain-db
+          security default-keychain -d user -s "$keychain_path"
+          echo "APPLE_KEYCHAIN=$keychain_path" >> "$GITHUB_ENV"
+          echo "APPLE_SIGNING_IDENTITY=${{ secrets.APPLE_SIGNING_IDENTITY }}" >> "$GITHUB_ENV"
+
+      - name: Export Apple notarization secrets
+        if: runner.os == 'macOS' && secrets.APPLE_ID != '' && secrets.APPLE_APP_SPECIFIC_PASSWORD != '' && secrets.APPLE_TEAM_ID != ''
+        shell: bash
+        run: |
+          {
+            echo "APPLE_ID=${{ secrets.APPLE_ID }}"
+            echo "APPLE_APP_SPECIFIC_PASSWORD=${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}"
+            echo "APPLE_TEAM_ID=${{ secrets.APPLE_TEAM_ID }}"
+          } >> "$GITHUB_ENV"
+
       - name: Lint
         run: npm run lint
 
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Build distributables
+      - name: Make distributables
         run: npm run ${{ matrix.make_script }}
         env:
           CI: true
           LEGISDEX_WEB_URL: https://www.legisdex.com
 
-      - name: Upload workflow artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
           path: out/make/**/*
           if-no-files-found: error
 
-      - name: Publish GitHub Release assets
+      - name: Publish to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: out/make/**/*
+
+      - name: Cleanup signing files
+        if: always()
+        shell: pwsh
+        run: |
+          $signingDir = Join-Path $env:RUNNER_TEMP "legisdex-signing"
+          if (Test-Path $signingDir) {
+            Remove-Item -LiteralPath $signingDir -Recurse -Force
+          }
